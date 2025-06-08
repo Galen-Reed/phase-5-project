@@ -6,7 +6,12 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, unique=True, nullable=False)
+    email = db.Column(db.String, unique=True, nullable=True)
     _password_hash = db.Column(db.String(100), nullable=False)
+
+    github_id = db.Column(db.String, unique=True, nullable=True)
+    avatar_url = db.Column(db.String, nullable=True)  
+    is_oauth_user = db.Column(db.Boolean, default=False, nullable=False)
 
     #Relationships
     notes = db.relationship("Note", back_populates="user", cascade="all, delete-orphan")
@@ -18,10 +23,30 @@ class User(db.Model):
     
     @password_hash.setter
     def password_hash(self, password):
-        self._password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+        if password:
+            self._password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
 
     def authenticate(self, password):
+        if self.is_oauth_user or not self._password_hash:
+            return False
         return bcrypt.check_password_hash(self._password_hash, password)
+    
+    @classmethod
+    def create_oauth_user(cls, github_data):
+        """Create a new user from GitHub OAuth data"""
+        user = cls(
+            username=github_data.get('login'),  # GitHub username
+            email=github_data.get('email'),
+            github_id=str(github_data.get('id')),
+            avatar_url=github_data.get('avatar_url'),
+            is_oauth_user=True
+        )
+        return user
+    
+    @classmethod
+    def find_by_github_id(cls, github_id):
+        """Find user by GitHub ID"""
+        return cls.query.filter_by(github_id=str(github_id)).first()
     
 class Coffee(db.Model):
     __tablename__ = "coffees"
@@ -63,7 +88,7 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
         load_instance = True
-        exclude = ("_password_hash",)
+        exclude = ("_password_hash", "github_id")
         include_relationships = True
 
     notes = ma.Nested("NoteSchema", many=True, exclude=("user",))
@@ -92,3 +117,6 @@ class NoteSchema(ma.SQLAlchemyAutoSchema):
         model = Note
         load_instance = True
         include_relationships = True
+
+    user = ma.Nested(UserSchema, exclude=("notes", "coffees"))
+    coffee = ma.Nested(CoffeeSchema, exclude=("notes", "users"))
