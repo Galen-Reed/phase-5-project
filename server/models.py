@@ -67,7 +67,7 @@ class Cafe(db.Model):
     name = db.Column(db.String, nullable=False)
     location = db.Column(db.String, nullable=False)
 
-    coffees = db.relationship("Coffee", back_populates="coffees")
+    coffees = db.relationship("Coffee", back_populates="cafe")
 
 class Note(db.Model):
     __tablename__ = "notes"
