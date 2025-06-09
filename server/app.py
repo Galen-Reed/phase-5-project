@@ -3,15 +3,22 @@
 # Standard library imports
 
 # Remote library imports
-from flask import request, session, make_response
+from flask import request, session, make_response, redirect, url_for, jsonify
 from flask_restful import Resource
 
 # Local imports
 from config import app, db, api, github
 # Add your model imports
-from models import User, Note, Coffee, Cafe
+from models import User, Note, Coffee, Cafe, UserSchema, NoteSchema, CoffeeSchema, CafeSchema
 
-
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)
+note_schema = NoteSchema()
+notes_schema = NoteSchema(many=True)
+coffee_schema = CoffeeSchema()
+coffees_schema = CoffeeSchema(many=True)
+cafe_schema = CafeSchema()
+cafes_schema = CafeSchema(many=True)
 # Views go here!
 
 class Signup(Resource):
@@ -35,14 +42,14 @@ class Signup(Resource):
 
         session["user_id"] = new_user.id
 
-        return make_response(new_user.to_dict(), 200)
+        return make_response(user_schema.dump(new_user), 200)
     
 class CheckSession(Resource):
     def get(self):
         user = User.query.filter(User.id == session.get('user_id')).first()
 
         if user:
-            return make_response(user.to_dict(), 200)
+            return make_response(user_schema.dump(user), 200)
         else:
             return {"error": "User not signed in"}, 401
             
@@ -56,7 +63,7 @@ class Login(Resource):
 
         if user and user.authenticate(password):
             session["user_id"] = user.id
-            return make_response(user.to_dict(), 200)
+            return make_response(user_schema.dump(user), 200)
         else:
             return {"error": "Invalid username or password"}, 401
             
@@ -177,6 +184,31 @@ class OAuthStatus(Resource):
             "has_github_linked": bool(user.github_id),
             "avatar_url": user.avatar_url
         }, 200
+
+class Notes(Resource):
+    def get(self):
+        if 'user_id' not in session:
+            return {"error": "Not logged in"}, 401
+        
+        notes = Note.query.filter_by(user_id=session["user_id"]).all()
+        return [notes_schema.dump(notes)], 200
+    
+    def post(self):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        data = request.get_json()
+        new_note = Note(
+            rating=data.get("rating"),
+            comment=data.get("comment"),
+            user_id=session["user_id"],
+            coffee_id=data.get("coffee_id")
+        )
+        
+        db.session.add(new_note)
+        db.session.commit()
+
+        return note_schema.dump(new_note), 201
 
 
 
