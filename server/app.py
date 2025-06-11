@@ -210,6 +210,127 @@ class Notes(Resource):
 
         return note_schema.dump(new_note), 201
 
+class NotesById(Resource):
+    def get(self, id):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        note = Note.query.filter_by(id=id, user_id=session["user_id"]).frst()
+        if not note:
+            return {"error": "Note not found"}, 404
+        
+        return note_schema.dump(note), 200
+    
+    def patch(self, id):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        note = Note.query.filter_by(id=id, user_id=session["user_id"]).frst()
+        if not note:
+            return {"error": "Note not found"}, 404
+        
+        data = request.get_json()
+
+        if "rating" in data:
+            note.rating = data["rating"]
+        if "comment" in data:
+            note.comment = data["comment"]
+
+        db.session.commit()
+
+        return note_schema.dump(note), 200
+    
+    def delete(self, id):
+        if 'user_id' not in session:
+            return {"error": "Not logged in"}, 401
+            
+        note = Note.query.filter_by(id=id, user_id=session['user_id']).first()
+        if not note:
+            return {"error": "Note not found"}, 404
+        
+        db.session.delete(note)
+        db.session.commit()
+
+        return {"message": "Note deleted successfully"}, 200
+    
+class Coffees(Resource):
+    def get(self):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+
+        coffees = Coffee.query.all()
+        return coffees_schema.dump(coffees), 200
+    
+    def post(self):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        data = request.get_json()
+
+        if not data.get("name") or not data.get("cafe_id"):
+            return {"error": "Name and cafe_id are required"}, 422
+        
+        cafe = Cafe.query.get(data.get("cafe_id"))
+        if not cafe:
+            return {"error": "Cafe not found"}, 404
+        
+        new_coffee = Coffee(
+            name=data.get("name"),
+            description=data.get("description"),
+            cafe_id=data.get("cafe_id")
+        )
+        
+        db.session.add(new_coffee)
+        db.session.commit()
+
+        return coffee_schema.dump(new_coffee), 201
+    
+class CoffeeById(Resource):
+    def get(self, id):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        coffee = Coffee.query.get(id)
+        if not coffee:
+            return {"error": "Coffee not found"}, 404
+        
+        return coffee_schema.dump(coffee), 200
+    
+    def patch(self, id):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        coffee = Coffee.query.get(id)
+        if not coffee:
+            return {"error": "Coffee not found"}, 404
+        
+        data = request.get_json()
+
+        if "name" in data:
+            coffee.name = data["name"]
+        if "description" in data:
+            coffee.description = data["description"]
+        
+        db.session.commit()
+
+        return coffee_schema.dump(coffee), 200
+    
+    def delete(self, id):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        coffee = Coffee.query.get(id)
+        if not coffee:
+            return {"error": "Coffee not found"}, 404
+        
+        db.session.delete(coffee)
+        db.session.commit()
+
+        return {"message": "Coffee deleted successfully"}, 200
+    
+
+    
+
 
 
 
@@ -221,6 +342,8 @@ api.add_resource(GitHubAuth, '/auth/github')
 api.add_resource(GitHubCallback, '/auth/github/callback')
 api.add_resource(GitHubLink, '/auth/github/link')
 api.add_resource(OAuthStatus, '/auth/status')
+api.add_resource(Notes, '/notes', endpoint="notes")
+api.add_resource(NotesById, '/notes/<int:id>', endpoint="notes_by_id")
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
