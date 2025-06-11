@@ -285,7 +285,7 @@ class Coffees(Resource):
 
         return coffee_schema.dump(new_coffee), 201
     
-class CoffeeById(Resource):
+class CoffeesById(Resource):
     def get(self, id):
         if "user_id" not in session:
             return {"error": "Not logged in"}, 401
@@ -328,11 +328,77 @@ class CoffeeById(Resource):
 
         return {"message": "Coffee deleted successfully"}, 200
     
+class Cafes(Resource):
+    def get(self):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        cafes = Cafe.query.all()
 
+        return cafes_schema.dump(cafes), 200
     
+    def post(self):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        data = request.get_json()
 
+        if not data.get("name") or not data.get("location"):
+            return {"error": "Name and location are required"}
+        
+        new_cafe = Cafe(
+            name=data.get("name"),
+            location=data.get("location")
+        )
+        
+        db.session.add(new_cafe)
+        db.session.commit()
 
+        return cafe_schema.dump(new_cafe), 201
+    
+class CafesById(Resource):
+    def get(self, id):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        cafe = Cafe.query.get(id)
+        if not cafe:
+            return {"error": "Cafe not found"}, 404
+        
+        return cafe_schema.dump(cafe), 200
+    
+    def patch(self, id):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        cafe = Cafe.query.get(id)
+        if not cafe:
+            return {"error": "Cafe not found"}, 404
+        
+        data = request.get_json()
 
+        if "name" in data:
+            cafe.name = data["name"]
+        if "location" in data:
+            cafe.location = data["location"]
+
+        db.session.commit()
+
+        return cafe_schema.dump(cafe), 200
+    
+    def delete(self, id):
+        if "user_id" not in session:
+            return {"error": "Not logged in"}, 401
+        
+        cafe = Cafe.query.get(id)
+        if not cafe:
+            return {"error": "Cafe not found"}, 404
+
+        db.session.delete(cafe)
+        db.session.commit()
+
+        return {"message": "Cafe deleted successfully"}, 200
+    
 
 api.add_resource(Signup, '/signup', endpoint='signup')
 api.add_resource(CheckSession, '/check_session', endpoint='check_session')
@@ -344,6 +410,11 @@ api.add_resource(GitHubLink, '/auth/github/link')
 api.add_resource(OAuthStatus, '/auth/status')
 api.add_resource(Notes, '/notes', endpoint="notes")
 api.add_resource(NotesById, '/notes/<int:id>', endpoint="notes_by_id")
+api.add_resource(Coffees, '/coffees', endpoint='coffees')
+api.add_resource(CoffeesById, '/coffees/<int: id>', endpoints="coffees_by_id")
+api.add_resource(Cafes, '/cafes', endpoint="cafes")
+api.add_resource(CafesById, '/cafes/<int:id>', endpoint="cafes_by_id")
+
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
