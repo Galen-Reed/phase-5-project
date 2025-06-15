@@ -191,7 +191,7 @@ class Notes(Resource):
             return {"error": "Not logged in"}, 401
         
         notes = Note.query.filter_by(user_id=session["user_id"]).all()
-        return [notes_schema.dump(notes)], 200
+        return notes_schema.dump(notes), 200
     
     def post(self):
         if "user_id" not in session:
@@ -215,7 +215,7 @@ class NotesById(Resource):
         if "user_id" not in session:
             return {"error": "Not logged in"}, 401
         
-        note = Note.query.filter_by(id=id, user_id=session["user_id"]).frst()
+        note = Note.query.filter_by(id=id, user_id=session["user_id"]).first()
         if not note:
             return {"error": "Note not found"}, 404
         
@@ -225,7 +225,7 @@ class NotesById(Resource):
         if "user_id" not in session:
             return {"error": "Not logged in"}, 401
         
-        note = Note.query.filter_by(id=id, user_id=session["user_id"]).frst()
+        note = Note.query.filter_by(id=id, user_id=session["user_id"]).first()
         if not note:
             return {"error": "Note not found"}, 404
         
@@ -344,7 +344,7 @@ class Cafes(Resource):
         data = request.get_json()
 
         if not data.get("name") or not data.get("location"):
-            return {"error": "Name and location are required"}
+            return {"error": "Name and location are required"}, 422
         
         new_cafe = Cafe(
             name=data.get("name"),
@@ -411,7 +411,7 @@ api.add_resource(OAuthStatus, '/auth/status')
 api.add_resource(Notes, '/notes', endpoint="notes")
 api.add_resource(NotesById, '/notes/<int:id>', endpoint="notes_by_id")
 api.add_resource(Coffees, '/coffees', endpoint='coffees')
-api.add_resource(CoffeesById, '/coffees/<int: id>', endpoints="coffees_by_id")
+api.add_resource(CoffeesById, '/coffees/<int:id>', endpoint="coffees_by_id")
 api.add_resource(Cafes, '/cafes', endpoint="cafes")
 api.add_resource(CafesById, '/cafes/<int:id>', endpoint="cafes_by_id")
 

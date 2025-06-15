@@ -15,7 +15,7 @@ class User(db.Model):
 
     #Relationships
     notes = db.relationship("Note", back_populates="user", cascade="all, delete-orphan")
-    coffees = db.relationship("Coffee", secondary="notes", back_populates="users", overlaps="notes")
+    coffees = db.relationship("Coffee", secondary="notes",  back_populates="users", overlaps="notes")
 
     @property
     def password_hash(self):
@@ -79,8 +79,8 @@ class Note(db.Model):
     coffee_id = db.Column(db.Integer, db.ForeignKey("coffees.id"), nullable=False)
 
     #Relationships
-    user = db.relationship("User", back_populates="notes")
-    coffee = db.relationship("Coffee", back_populates="notes")
+    user = db.relationship("User", back_populates="notes", overlaps="coffees,users")
+    coffee = db.relationship("Coffee", back_populates="notes", overlaps="coffees,users")
 
 #Marshmallow Schemas
 
